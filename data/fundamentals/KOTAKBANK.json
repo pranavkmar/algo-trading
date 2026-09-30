@@ -1,0 +1,46 @@
+{
+  "symbol": "KOTAKBANK",
+  "company_name": "Kotak Mahindra Bank Ltd",
+  "about": "Kotak Mahindra Bank is a diversified financial services group providing a wide range of banking and financial services including Retail Banking, Treasury and Corporate Banking, Investment Banking, Stock Broking, Vehicle Finance, Advisory services, Asset Management, Life Insurance and General Insuran...",
+  "market_cap_cr": 414817.0,
+  "current_price": 417.0,
+  "pe": 20.7,
+  "book_value": 182.0,
+  "pb": 2.29,
+  "roce": 6.98,
+  "roe": 11.4,
+  "dividend_yield": 0.16,
+  "face_value": 1.0,
+  "pros": [],
+  "cons": [
+    "Company has low interest coverage ratio.",
+    "Company has a low return on equity of 13.7% over last 3 years.",
+    "Contingent liabilities of Rs.10,54,268 Cr.",
+    "Earnings include an other income of Rs.40,409 Cr.",
+    "Dividend payout has been low at 2.59% of profits over last 3 years",
+    "Working capital days have increased from 97.7 days to 145 days"
+  ],
+  "shareholding": {
+    "Promoters": {
+      "latest": 25.87,
+      "previous": 25.87,
+      "change_qoq": 0.0
+    },
+    "FIIs": {
+      "latest": 25.21,
+      "previous": 26.4,
+      "change_qoq": -1.19
+    },
+    "DIIs": {
+      "latest": 37.71,
+      "previous": 36.19,
+      "change_qoq": 1.52
+    },
+    "Public": {
+      "latest": 11.2,
+      "previous": 11.54,
+      "change_qoq": -0.34
+    }
+  },
+  "last_updated": "2026-09-30 14:42:13"
+}

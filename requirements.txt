@@ -1,0 +1,5 @@
+pandas>=2.0.0
+nselib>=2.5.0
+requests>=2.30.0
+tqdm>=4.66.0
+beautifulsoup4>=4.12.0

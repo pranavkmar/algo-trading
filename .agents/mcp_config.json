@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "screener": {
+      "command": "/home/beast/.local/bin/uvx",
+      "args": ["screener-mcp"]
+    }
+  }
+}

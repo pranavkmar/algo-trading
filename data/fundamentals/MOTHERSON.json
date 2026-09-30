@@ -1,0 +1,51 @@
+{
+  "symbol": "MOTHERSON",
+  "company_name": "Samvardhana Motherson International Ltd",
+  "about": "Motherson Sumi Systems is engaged primarily in the manufacturer and sale of components to automotive original equipment manufacturers.[1]",
+  "market_cap_cr": 171296.0,
+  "current_price": 163.0,
+  "pe": 37.5,
+  "book_value": 38.8,
+  "pb": 4.2,
+  "roce": 13.4,
+  "roe": 11.2,
+  "dividend_yield": 0.37,
+  "face_value": 1.0,
+  "pros": [
+    "Company has delivered good profit growth of 31.9% CAGR over last 5 years",
+    "Company has been maintaining a healthy dividend payout of 17.4%"
+  ],
+  "cons": [
+    "Stock is trading at 4.20 times its book value",
+    "Company has a low return on equity of 11.6% over last 3 years.",
+    "Promoter holding has decreased over last 3 years: -16.2%"
+  ],
+  "shareholding": {
+    "Promoters": {
+      "latest": 48.6,
+      "previous": 48.6,
+      "change_qoq": 0.0
+    },
+    "FIIs": {
+      "latest": 12.87,
+      "previous": 12.45,
+      "change_qoq": 0.42
+    },
+    "DIIs": {
+      "latest": 20.59,
+      "previous": 21.08,
+      "change_qoq": -0.49
+    },
+    "Government": {
+      "latest": 0.05,
+      "previous": 0.05,
+      "change_qoq": 0.0
+    },
+    "Public": {
+      "latest": 17.67,
+      "previous": 17.6,
+      "change_qoq": 0.07
+    }
+  },
+  "last_updated": "2026-09-30 14:41:33"
+}
