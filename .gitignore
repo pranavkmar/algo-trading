@@ -25,3 +25,8 @@ Thumbs.db
 *.db-shm
 data/amibroker_export/
 
+# Broker credentials and paper trading state
+data/broker_config.json
+data/paper_portfolio.json
+
+

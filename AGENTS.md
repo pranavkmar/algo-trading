@@ -21,7 +21,7 @@ Agents and operators should execute the following 5-step routine for daily EOD s
 # 4. Convene the committee on today's top screened stocks
 ./.venv/bin/python analyst_committee.py --top-screened --top 3
 
-# 5. Sync & query 1-minute intraday bars in amibroker.db
+# 5. Sync & query 1-minute orderflow bars in amibroker.db
 ./.venv/bin/python intraday_sync.py
 ./.venv/bin/python intraday_sync.py --query KOTAKBANK --days 10
 ```
@@ -40,17 +40,18 @@ algo-trading/
 │   ├── fno_symbols.json          # 213 active NSE F&O underlying symbols
 │   ├── historical/               # Local CSV candles per symbol (2026-01-01 to present)
 │   ├── fundamentals/             # Cached Screener.in JSON files (24h TTL)
-│   ├── amibroker.db              # SQLite database storing 1-minute intraday OHLCV bars
-│   ├── amibroker_export/         # Standard AmiBroker ASCII CSV exports
+│   ├── amibroker.db              # SQLite database storing 1-minute intraday OHLCV + Order Flow bars
+│   ├── amibroker_export/         # Standard AmiBroker ASCII CSV exports (with BuyVol/SellVol/Delta)
 │   └── institutional_signals.csv # Latest screened institutional setups
 ├── logs/
 │   └── cron_bhavcopy.log         # Automated cron EOD ingestion logs
 ├── scripts/
 │   └── cron_bhavcopy_sync.sh     # Daily cron execution script (Bhavcopy + Screen + 1m DB)
 ├── analyst_committee.py          # Multi-persona committee decision engine
+├── broker_client.py              # Multi-broker adapter gateway (Dhan, Fyers, Paper, Webhooks)
 ├── data_sync.py                  # Incremental delta & historical ingestion engine
 ├── delivery_filter.py            # High-speed disk-based screening engine
-├── intraday_sync.py              # 1-minute intraday bar ingestion & AmiBroker DB engine
+├── intraday_sync.py              # 1-minute order flow ingestion & AmiBroker DB engine
 ├── screener_client.py            # Screener.in extraction client with JSON caching
 └── AGENTS.md                     # This file
 ```
@@ -65,8 +66,12 @@ algo-trading/
    - `data_sync.py` downloads this single file and appends delta rows to all 213 local CSVs in $<1$s.
    - Idempotent: checks each symbol's latest date to prevent duplicate rows.
 
-2. **1-Minute Intraday Bars (`amibroker.db`)**:
-   - Stores 1-minute candles (`symbol`, `datetime`, `open`, `high`, `low`, `close`, `volume`) in SQLite format.
+2. **1-Minute Intraday & Order Flow Bars (`amibroker.db`)**:
+   - Stores 1-minute candles (`symbol`, `datetime`, `open`, `high`, `low`, `close`, `volume`, `buy_volume`, `sell_volume`, `delta`) in SQLite format.
+   - Computes intra-candle aggressor volume:
+     - `buy_volume`: Aggressive market buy orders lifting the Ask.
+     - `sell_volume`: Aggressive market sell orders hitting the Bid.
+     - `delta`: `buy_volume - sell_volume`.
    - Upserted idempotently (`INSERT OR REPLACE`) so nightly runs accumulate continuous history across 10+ days without gaps or duplicates.
    - Supports export to AmiBroker standard ASCII format via `--export-amibroker <SYMBOL>`.
 
@@ -134,3 +139,13 @@ When implementing web visualization dashboards:
 - **Mandate**: Use the **GoCharting Library / SDK (`@gocharting/chart-sdk`)** or **GoCharting embed widgets** instead of TradingView.
 - **Advantages**: Native orderflow support, Indian market (NSE) compatibility, footprint and volume profile capabilities.
 - **1-Minute Bar Feed**: Pipe 1-minute intraday bars from `data/amibroker.db` into the chart container or embed with the `NSE:<SYMBOL>` ticker reference.
+
+---
+
+## 7. Multi-Broker Integration & Order Flow Standard
+
+When connecting broker APIs for execution or live market depth:
+1. **Dhan (DhanHQ)**: Preferred broker partner for GoCharting. Connects directly to GoCharting terminals and provides 200-level market depth feeds.
+2. **Fyers (v3)**: Specialized for Order Flow with 50-level depth and Tick-by-Tick (TBT) feeds.
+3. **Paper Trading Simulator**: Default active execution engine in `broker_client.py` allowing risk-free validation of signals and GoCharting webhooks with ₹10,00,000 virtual capital.
+4. **GoCharting Webhooks**: Router in `broker_client.py` receives alert webhooks from GoCharting charts and automatically routes order dispatch.

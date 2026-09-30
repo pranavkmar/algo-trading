@@ -13,11 +13,12 @@ All historical data (OHLCV, trades, turnover, deliverable quantity, and delivery
 4. [Data Synchronization CLI (`data_sync.py`)](#data-synchronization-cli-data_syncpy)
 5. [Screening & Filtering CLI (`delivery_filter.py`)](#screening--filtering-cli-delivery_filterpy)
 6. [Comprehensive Terminal Command Reference](#comprehensive-terminal-command-reference)
-7. [1-Minute Intraday & AmiBroker Engine (`intraday_sync.py`)](#9-1-minute-intraday--amibroker-database-engine-intraday_syncpy)
+7. [1-Minute Intraday & Order Flow Engine (`intraday_sync.py`)](#9-1-minute-intraday--order-flow-engine-intraday_syncpy)
 8. [GoCharting Web UI Integration](#10-gocharting-library-integration-for-web-ui)
-9. [Key Market Findings & Institutional Footprints](#key-market-findings--institutional-footprints)
-10. [Local Dataset Schema](#local-dataset-schema)
-11. [Scheduled Automation](#scheduled-automation)
+9. [Multi-Broker Integration Gateway (`broker_client.py`)](#11-multi-broker-integration-gateway-broker_clientpy)
+10. [Key Market Findings & Institutional Footprints](#key-market-findings--institutional-footprints)
+11. [Local Dataset Schema](#local-dataset-schema)
+12. [Scheduled Automation](#scheduled-automation)
 
 ---
 
@@ -304,20 +305,23 @@ This equips the AI agent with 30 fundamental analysis tools from Screener.in:
 
 ---
 
-### 9. 1-Minute Intraday & AmiBroker Database Engine (`intraday_sync.py`)
+### 9. 1-Minute Intraday & Order Flow Engine (`intraday_sync.py`)
 
-Fetches 1-minute OHLCV candles for all 213 active NSE F&O underlying equities and stores them into an indexed SQLite database (`data/amibroker.db`).
+Fetches 1-minute OHLCV candles for all 213 active NSE F&O underlying equities, computes intra-candle **Order Flow (Buy Volume, Sell Volume, and Delta)** via the Bulk Volume Classification (BVC) model, and stores them into an indexed SQLite database (`data/amibroker.db`).
 
 #### Database Schema:
 ```sql
 CREATE TABLE bars_1m (
     symbol TEXT NOT NULL,
-    datetime TEXT NOT NULL,   -- 'YYYY-MM-DD HH:MM:SS' in IST
+    datetime TEXT NOT NULL,       -- 'YYYY-MM-DD HH:MM:SS' in IST
     open REAL NOT NULL,
     high REAL NOT NULL,
     low REAL NOT NULL,
     close REAL NOT NULL,
-    volume INTEGER NOT NULL,
+    volume INTEGER NOT NULL,      -- Total Candle Volume
+    buy_volume INTEGER NOT NULL,  -- Aggressive Buyer Volume (Ask)
+    sell_volume INTEGER NOT NULL, -- Aggressive Seller Volume (Bid)
+    delta INTEGER NOT NULL,       -- Order Flow Delta (Buy - Sell)
     PRIMARY KEY (symbol, datetime)
 );
 CREATE INDEX idx_bars_symbol_dt ON bars_1m(symbol, datetime);
@@ -326,33 +330,38 @@ CREATE INDEX idx_bars_dt ON bars_1m(datetime);
 
 #### Terminal Commands:
 ```bash
-# 1. Sync 1-minute bars for all 213 F&O stocks (multi-threaded, ~30s)
+# 1. Sync 1-minute orderflow bars for all 213 F&O stocks (multi-threaded, ~30s)
 ./.venv/bin/python intraday_sync.py
 
-# 2. Sync 1-minute bars for a single stock only (e.g. MOTHERSON)
-./.venv/bin/python intraday_sync.py --symbol MOTHERSON
+# 2. Sync 1-minute bars for a single stock only (e.g. MOTHERSON, KOTAKBANK)
+./.venv/bin/python intraday_sync.py --symbol KOTAKBANK
 
-# 3. Query the last 10 trading days of 1-minute bars for quantitative analysis
-./.venv/bin/python intraday_sync.py --query MOTHERSON --days 10
+# 3. Query the last 10 trading days of 1-minute orderflow bars for quantitative analysis
+./.venv/bin/python intraday_sync.py --query KOTAKBANK --days 10
 
-# 4. Export 1-minute bars into AmiBroker standard ASCII format (CSV)
-./.venv/bin/python intraday_sync.py --export-amibroker MOTHERSON
+# 4. Export 1-minute bars into AmiBroker extended ASCII format (CSV)
+./.venv/bin/python intraday_sync.py --export-amibroker KOTAKBANK
 
 # 5. Display amibroker.db bar count, earliest/latest dates, and file size
 ./.venv/bin/python intraday_sync.py --stats
 ```
 
-#### AmiBroker Standard ASCII Export:
-When `--export-amibroker` is executed, files are written to `data/amibroker_export/<SYMBOL>_1m.csv` with AmiBroker standard header:
+#### AmiBroker Extended Order Flow ASCII Export:
+When `--export-amibroker` is executed, files are written to `data/amibroker_export/<SYMBOL>_1m.csv` with AmiBroker standard header mapping Order Flow to custom fields:
 ```csv
-$FORMAT Ticker, Date_YMD, Time, Open, High, Low, Close, Volume
+$FORMAT Ticker, Date_YMD, Time, Open, High, Low, Close, Volume, Aux1, Aux2, OI
+# Aux1 = Buy Volume | Aux2 = Sell Volume | OI = Order Flow Delta
 $SEPARATOR ,
 $CONT 1
 $AUTOADD 1
 $OVERWRITE 1
-MOTHERSON,20260930,091500,163.50,163.80,163.20,163.60,45210
+KOTAKBANK,20260930,151500,415.15,417.00,415.15,417.00,1756247,1668435,87812,1580623
 ```
-This file can be dropped directly into AmiBroker or imported via File $\rightarrow$ Import ASCII.
+This enables AmiBroker AFL charts to directly plot:
+- `Plot(Aux1, "Buy Volume", colorGreen, styleHistogram);`
+- `Plot(Aux2, "Sell Volume", colorRed, styleHistogram);`
+- `Plot(OI, "Volume Delta", IIf(OI > 0, colorBrightGreen, colorRed), styleHistogram);`
+- `Plot(Cum(OI), "Cumulative Volume Delta (CVD)", colorBlue, styleLine);`
 
 ---
 
@@ -376,6 +385,32 @@ For web-based visualization dashboards, the system integrates the **GoCharting L
         allowfullscreen>
     </iframe>
 </div>
+```
+
+---
+
+### 11. Multi-Broker Integration Gateway (`broker_client.py`)
+
+A modular broker adapter architecture designed for Indian equities and derivatives:
+
+| Broker | API Status | Depth Level | GoCharting Synergy | Key Strengths |
+|---|---|---|---|---|
+| **Dhan (DhanHQ)** | 100% Free | **200 Levels** | **Direct Official Partner** | Trade directly inside GoCharting; free WebSocket feeds |
+| **Fyers (v3)** | 100% Free | **50 Levels** | Webhook / API | Tick-by-Tick (TBT) feeds built specifically for Order Flow |
+| **Shoonya (Finvasia)** | 100% Free | Standard Depth | Webhook / API | Zero brokerage across equity and F&O |
+| **Zerodha (Kite)** | Paid (₹2K/mo) | 20 Levels | Webhook / API | Industry standard liquidity & stable websockets |
+| **Paper Simulator** | Built-in | Simulated | Built-in | Test strategies & GoCharting webhooks with ₹10,00,000 virtual cash |
+
+#### Terminal Commands:
+```bash
+# Check connection status of all broker adapters
+./.venv/bin/python broker_client.py --status
+
+# Test order execution on Paper Trading simulator
+./.venv/bin/python broker_client.py --test-order MOTHERSON BUY 100
+
+# Simulate an automated trade triggered by a GoCharting alert webhook
+./.venv/bin/python broker_client.py --test-webhook
 ```
 
 ---
