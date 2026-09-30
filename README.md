@@ -51,17 +51,22 @@ algo-trading/
 
 ---
 
-## Quick Start
+## Quick Start: Daily Institutional Workflow
 
-Activate the virtual environment:
-```bash
-source .venv/bin/activate
-# or run directly with: ./.venv/bin/python <script.py>
-```
+Activate the virtual environment or run directly via `./.venv/bin/python`:
 
-Run an initial screen across all 213 F&O stocks for institutional accumulation:
 ```bash
+# 1. Run the daily smart delta sync (or let the cron job do it automatically at 20:00 IST)
+./.venv/bin/python data_sync.py
+
+# 2. Screen for institutional accumulation (Delivery >= 70% AND Volume >= 2x)
 ./.venv/bin/python delivery_filter.py --mode both -d 70.0 -v 2.0 --top 20
+
+# 3. Convene the committee on any stock (e.g. MOTHERSON, KOTAKBANK, WIPRO)
+./.venv/bin/python analyst_committee.py --symbol KOTAKBANK
+
+# 4. Convene the committee on today's top screened stocks
+./.venv/bin/python analyst_committee.py --top-screened --top 3
 ```
 
 ---
