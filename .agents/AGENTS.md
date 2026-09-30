@@ -24,6 +24,9 @@ Agents and operators should execute the following 5-step routine for daily EOD s
 # 5. Sync & query 1-minute orderflow bars in amibroker.db
 ./.venv/bin/python intraday_sync.py
 ./.venv/bin/python intraday_sync.py --query KOTAKBANK --days 10
+
+# 6. Stream real-time 1m candles & Time and Sales with automated position entry
+./.venv/bin/python realtime_feed.py --watchlist KOTAKBANK MOTHERSON WIPRO --auto-trade
 ```
 
 ---
@@ -52,6 +55,7 @@ algo-trading/
 ├── data_sync.py                  # Incremental delta & historical ingestion engine
 ├── delivery_filter.py            # High-speed disk-based screening engine
 ├── intraday_sync.py              # 1-minute order flow ingestion & AmiBroker DB engine
+├── realtime_feed.py              # Real-time Time & Sales, candle aggregator & intraday screener
 ├── screener_client.py            # Screener.in extraction client with JSON caching
 └── AGENTS.md                     # This file
 ```

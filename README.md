@@ -16,9 +16,10 @@ All historical data (OHLCV, trades, turnover, deliverable quantity, and delivery
 7. [1-Minute Intraday & Order Flow Engine (`intraday_sync.py`)](#9-1-minute-intraday--order-flow-engine-intraday_syncpy)
 8. [GoCharting Web UI Integration](#10-gocharting-library-integration-for-web-ui)
 9. [Multi-Broker Integration Gateway (`broker_client.py`)](#11-multi-broker-integration-gateway-broker_clientpy)
-10. [Key Market Findings & Institutional Footprints](#key-market-findings--institutional-footprints)
-11. [Local Dataset Schema](#local-dataset-schema)
-12. [Scheduled Automation](#scheduled-automation)
+10. [Real-Time Intraday Streamer & Watchlist Screener (`realtime_feed.py`)](#12-real-time-intraday-streamer--watchlist-screener-realtime_feedpy)
+11. [Key Market Findings & Institutional Footprints](#key-market-findings--institutional-footprints)
+12. [Local Dataset Schema](#local-dataset-schema)
+13. [Scheduled Automation](#scheduled-automation)
 
 ---
 
@@ -411,6 +412,32 @@ A modular broker adapter architecture designed for Indian equities and derivativ
 
 # Simulate an automated trade triggered by a GoCharting alert webhook
 ./.venv/bin/python broker_client.py --test-webhook
+```
+
+---
+
+### 12. Real-Time Intraday Streamer & Watchlist Screener (`realtime_feed.py`)
+
+Streams real-time **Time & Sales (The Tape)**, aggregates live trade ticks into forming **1-Minute Candles**, computes real-time **Order Flow Delta (Buy vs Sell volume)** and **VWAP**, screens watchlist stocks for high-probability intraday setups, and executes orders automatically via the broker gateway.
+
+#### Live Terminal Dashboard Features:
+1. **Watchlist Screener Matrix**: Tracks real-time LTP, % change from day open, VWAP, High/Low of Day, 1-minute & session volume, Order Flow Delta, and live trade signals (`BULLISH BREAKOUT`, `VWAP ABSORPTION`, `BEARISH BREAKDOWN`).
+2. **Time and Sales Feed (The Tape)**: Displays live millisecond execution ticks (`Timestamp, Symbol, Price, Size, Side`). Green for aggressive Ask lifts (buys) and red for aggressive Bid hits (sells).
+3. **Automated Trade Manager**: Automatically enters long/short positions using fractional portfolio risk sizing (1% risk model on ₹10,00,000 capital) with defined Entry, Stop Loss (at VWAP), and Target (1:2 R:R), and tracks live unrealized P&L.
+
+#### Terminal Commands:
+```bash
+# 1. Stream real-time intraday candles & Time and Sales for selected stocks
+./.venv/bin/python realtime_feed.py --watchlist KOTAKBANK MOTHERSON WIPRO RELIANCE
+
+# 2. Enable automated position entry when intraday breakout setups trigger
+./.venv/bin/python realtime_feed.py --watchlist KOTAKBANK MOTHERSON WIPRO --auto-trade
+
+# 3. Stream a test sequence of 50 ticks at rapid speed (0.10s per tick)
+./.venv/bin/python realtime_feed.py --watchlist KOTAKBANK MOTHERSON --ticks 50 --speed 0.10
+
+# 4. Stream your custom screened institutional candidates from today's EOD screen
+./.venv/bin/python realtime_feed.py --watchlist WIPRO BSE KOTAKBANK --auto-trade
 ```
 
 ---
