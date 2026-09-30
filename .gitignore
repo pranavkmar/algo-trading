@@ -17,3 +17,11 @@ logs/
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Database & temporary exports
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/amibroker_export/
+

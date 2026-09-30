@@ -8,14 +8,16 @@ All historical data (OHLCV, trades, turnover, deliverable quantity, and delivery
 
 ## Table of Contents
 1. [Architecture & Project Structure](#architecture--project-structure)
-2. [Quick Start](#quick-start)
+2. [Quick Start: Daily Institutional Workflow](#quick-start-daily-institutional-workflow)
 3. [Bhavcopy Update Timetable & Delta Sync](#bhavcopy-update-timetable--delta-sync)
 4. [Data Synchronization CLI (`data_sync.py`)](#data-synchronization-cli-data_syncpy)
 5. [Screening & Filtering CLI (`delivery_filter.py`)](#screening--filtering-cli-delivery_filterpy)
 6. [Comprehensive Terminal Command Reference](#comprehensive-terminal-command-reference)
-7. [Key Market Findings & Institutional Footprints](#key-market-findings--institutional-footprints)
-8. [Local Dataset Schema](#local-dataset-schema)
-9. [Scheduled Automation](#scheduled-automation)
+7. [1-Minute Intraday & AmiBroker Engine (`intraday_sync.py`)](#9-1-minute-intraday--amibroker-database-engine-intraday_syncpy)
+8. [GoCharting Web UI Integration](#10-gocharting-library-integration-for-web-ui)
+9. [Key Market Findings & Institutional Footprints](#key-market-findings--institutional-footprints)
+10. [Local Dataset Schema](#local-dataset-schema)
+11. [Scheduled Automation](#scheduled-automation)
 
 ---
 
@@ -26,21 +28,27 @@ algo-trading/
 ├── .agents/                      # Antigravity Rules & Skills for the Trading Committee
 ├── data/
 │   ├── fno_symbols.json          # 213 F&O underlying symbols and company names
-│   ├── historical/               # Standardized CSV datasets per symbol
+│   ├── historical/               # Standardized CSV datasets per symbol (EOD candles)
 │   │   ├── MOTHERSON.csv
 │   │   ├── RELIANCE.csv
 │   │   ├── KOTAKBANK.csv
 │   │   ├── WIPRO.csv
 │   │   └── ... (213 files)
+│   ├── amibroker.db              # SQLite DB storing 1-minute intraday OHLCV bars
+│   ├── amibroker_export/         # Standard AmiBroker ASCII CSV files
+│   ├── fundamentals/             # Cached Screener.in JSON files (24h TTL)
 │   └── institutional_signals.csv # Pre-screened institutional signals
 ├── logs/
 │   └── cron_bhavcopy.log         # Automatic cron sync and screener logs
 ├── scripts/
-│   └── cron_bhavcopy_sync.sh     # Executable cron task runner
+│   └── cron_bhavcopy_sync.sh     # Executable cron task runner (Bhavcopy + Screen + 1m DB)
 ├── analyst_committee.py          # Multi-Persona Trading & Investment Committee Simulator
 ├── data_sync.py                  # Incremental Delta & Historical Ingestion Engine
 ├── delivery_filter.py            # High-speed Multi-Symbol Screening & Analysis Engine
-├── requirements.txt              # Project dependencies (pandas, nselib, requests, tqdm)
+├── intraday_sync.py              # 1-Minute Intraday Bar Ingestion & AmiBroker DB Engine
+├── screener_client.py            # Screener.in Extraction Client with JSON Caching
+├── requirements.txt              # Project dependencies (pandas, yfinance, nselib, requests)
+├── AGENTS.md                     # Agent guide & multi-persona committee protocols
 └── README.md                     # Documentation & Command Manual
 ```
 
@@ -48,6 +56,7 @@ algo-trading/
 1. **Local-First Speed**: Scans all 213 stocks (~39,000 candles) directly from disk in **under 1.5 seconds**.
 2. **Single-Request Smart Delta Sync**: Daily updates download only the consolidated EOD Deliverable Bhavcopy (~400 KB) in one HTTP request, updating all 213 stocks in **under 1 second**.
 3. **Institutional Signal Detection**: Combines delivery percentage with rolling volume moving averages (SMA) to differentiate genuine institutional cash accumulation from intraday churn.
+4. **1-Minute Granularity with AmiBroker SQLite Storage**: Ingests and maintains 1-minute intraday bars across all F&O stocks in `data/amibroker.db` for nightly quantitative analysis and native AmiBroker ASCII export.
 
 ---
 
@@ -67,6 +76,10 @@ Activate the virtual environment or run directly via `./.venv/bin/python`:
 
 # 4. Convene the committee on today's top screened stocks
 ./.venv/bin/python analyst_committee.py --top-screened --top 3
+
+# 5. Sync & query 1-minute intraday bars in amibroker.db
+./.venv/bin/python intraday_sync.py
+./.venv/bin/python intraday_sync.py --query KOTAKBANK --days 10
 ```
 
 ---
@@ -288,6 +301,82 @@ This equips the AI agent with 30 fundamental analysis tools from Screener.in:
 - `get_shareholding_pattern`: Institutional ownership trends (FIIs, DIIs, Promoters, Public).
 - `analyze_red_flags`: Rule-based audit red flags over the company's full operating history.
 - `compare_companies`: Side-by-side comparative analysis of peer stocks.
+
+---
+
+### 9. 1-Minute Intraday & AmiBroker Database Engine (`intraday_sync.py`)
+
+Fetches 1-minute OHLCV candles for all 213 active NSE F&O underlying equities and stores them into an indexed SQLite database (`data/amibroker.db`).
+
+#### Database Schema:
+```sql
+CREATE TABLE bars_1m (
+    symbol TEXT NOT NULL,
+    datetime TEXT NOT NULL,   -- 'YYYY-MM-DD HH:MM:SS' in IST
+    open REAL NOT NULL,
+    high REAL NOT NULL,
+    low REAL NOT NULL,
+    close REAL NOT NULL,
+    volume INTEGER NOT NULL,
+    PRIMARY KEY (symbol, datetime)
+);
+CREATE INDEX idx_bars_symbol_dt ON bars_1m(symbol, datetime);
+CREATE INDEX idx_bars_dt ON bars_1m(datetime);
+```
+
+#### Terminal Commands:
+```bash
+# 1. Sync 1-minute bars for all 213 F&O stocks (multi-threaded, ~30s)
+./.venv/bin/python intraday_sync.py
+
+# 2. Sync 1-minute bars for a single stock only (e.g. MOTHERSON)
+./.venv/bin/python intraday_sync.py --symbol MOTHERSON
+
+# 3. Query the last 10 trading days of 1-minute bars for quantitative analysis
+./.venv/bin/python intraday_sync.py --query MOTHERSON --days 10
+
+# 4. Export 1-minute bars into AmiBroker standard ASCII format (CSV)
+./.venv/bin/python intraday_sync.py --export-amibroker MOTHERSON
+
+# 5. Display amibroker.db bar count, earliest/latest dates, and file size
+./.venv/bin/python intraday_sync.py --stats
+```
+
+#### AmiBroker Standard ASCII Export:
+When `--export-amibroker` is executed, files are written to `data/amibroker_export/<SYMBOL>_1m.csv` with AmiBroker standard header:
+```csv
+$FORMAT Ticker, Date_YMD, Time, Open, High, Low, Close, Volume
+$SEPARATOR ,
+$CONT 1
+$AUTOADD 1
+$OVERWRITE 1
+MOTHERSON,20260930,091500,163.50,163.80,163.20,163.60,45210
+```
+This file can be dropped directly into AmiBroker or imported via File $\rightarrow$ Import ASCII.
+
+---
+
+### 10. GoCharting Library Integration for Web UI
+
+For web-based visualization dashboards, the system integrates the **GoCharting Library & Embed SDK** (`@gocharting/chart-sdk`) instead of TradingView:
+- **Orderflow & Market Profile**: Full native support for order flow, footprint charts, and volume profile.
+- **NSE Indian Equities**: Native support for NSE tickers (`NSE:<SYMBOL>`).
+- **Interactive Timeframes**: Direct rendering of 1-minute (`interval=1`) and Daily (`interval=D`) candles.
+
+#### Web Embed Architecture:
+```html
+<!-- GoCharting Embedded Chart Container -->
+<div class="chart-wrapper">
+    <iframe 
+        id="gocharting-frame"
+        src="https://gocharting.com/terminal?ticker=NSE:MOTHERSON&interval=1" 
+        width="100%" 
+        height="650" 
+        frameborder="0"
+        allowfullscreen>
+    </iframe>
+</div>
+```
 
 ---
 

@@ -28,5 +28,8 @@ cd "${PROJECT_DIR}"
     -v 2.0 \
     --export "${PROJECT_DIR}/data/institutional_signals.csv" >> "${LOG_FILE}" 2>&1
 
+# 3. Ingest 1-minute intraday bars into amibroker.db for nightly analysis
+"${PROJECT_DIR}/.venv/bin/python" "${PROJECT_DIR}/intraday_sync.py" >> "${LOG_FILE}" 2>&1
+
 echo "[CRON] Finished successfully at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "${LOG_FILE}"
 echo "" >> "${LOG_FILE}"

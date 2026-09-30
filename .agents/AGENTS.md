@@ -6,7 +6,7 @@ This document defines the operational procedures, architecture, command interfac
 
 ## 1. Daily Core Workflow Commands
 
-Agents and operators should execute the following 4-step routine for daily EOD screening and stock evaluation:
+Agents and operators should execute the following 5-step routine for daily EOD screening, stock evaluation, and 1-minute database loading:
 
 ```bash
 # 1. Run the daily smart delta sync (or let the cron job do it automatically at 20:00 IST)
@@ -20,6 +20,10 @@ Agents and operators should execute the following 4-step routine for daily EOD s
 
 # 4. Convene the committee on today's top screened stocks
 ./.venv/bin/python analyst_committee.py --top-screened --top 3
+
+# 5. Sync & query 1-minute intraday bars in amibroker.db
+./.venv/bin/python intraday_sync.py
+./.venv/bin/python intraday_sync.py --query KOTAKBANK --days 10
 ```
 
 ---
@@ -36,14 +40,17 @@ algo-trading/
 │   ├── fno_symbols.json          # 213 active NSE F&O underlying symbols
 │   ├── historical/               # Local CSV candles per symbol (2026-01-01 to present)
 │   ├── fundamentals/             # Cached Screener.in JSON files (24h TTL)
+│   ├── amibroker.db              # SQLite database storing 1-minute intraday OHLCV bars
+│   ├── amibroker_export/         # Standard AmiBroker ASCII CSV exports
 │   └── institutional_signals.csv # Latest screened institutional setups
 ├── logs/
 │   └── cron_bhavcopy.log         # Automated cron EOD ingestion logs
 ├── scripts/
-│   └── cron_bhavcopy_sync.sh     # Daily cron execution script
+│   └── cron_bhavcopy_sync.sh     # Daily cron execution script (Bhavcopy + Screen + 1m DB)
 ├── analyst_committee.py          # Multi-persona committee decision engine
 ├── data_sync.py                  # Incremental delta & historical ingestion engine
 ├── delivery_filter.py            # High-speed disk-based screening engine
+├── intraday_sync.py              # 1-minute intraday bar ingestion & AmiBroker DB engine
 ├── screener_client.py            # Screener.in extraction client with JSON caching
 └── AGENTS.md                     # This file
 ```
@@ -58,13 +65,19 @@ algo-trading/
    - `data_sync.py` downloads this single file and appends delta rows to all 213 local CSVs in $<1$s.
    - Idempotent: checks each symbol's latest date to prevent duplicate rows.
 
-2. **Bhavcopy Timing**:
+2. **1-Minute Intraday Bars (`amibroker.db`)**:
+   - Stores 1-minute candles (`symbol`, `datetime`, `open`, `high`, `low`, `close`, `volume`) in SQLite format.
+   - Upserted idempotently (`INSERT OR REPLACE`) so nightly runs accumulate continuous history across 10+ days without gaps or duplicates.
+   - Supports export to AmiBroker standard ASCII format via `--export-amibroker <SYMBOL>`.
+
+3. **Bhavcopy Timing**:
    - Market closes: 15:30 IST (10:00 UTC).
    - Deliverable Bhavcopy published: 18:00 – 19:30 IST (occasionally up to 20:00 IST on high-volume/expiry Thursdays).
    - Optimal sync window: **20:00 IST (14:30 UTC)**.
 
-3. **Cron Automation**:
+4. **Cron Automation**:
    - Automated via `crontab -l`: runs `scripts/cron_bhavcopy_sync.sh` at 14:30 UTC (20:00 IST) and 15:00 UTC (20:30 IST) Monday through Friday.
+   - The cron script executes: (1) `data_sync.py`, (2) `delivery_filter.py`, (3) `intraday_sync.py`.
 
 ---
 
@@ -112,3 +125,12 @@ Registered in `.agents/mcp_config.json` and `~/.gemini/config/mcp_config.json`:
 - `get_shareholding_pattern(symbol)`: Promoter, FII, DII, and Public quarterly trends.
 - `analyze_red_flags(symbol)`: Automated audit red flags.
 - `compare_companies(symbols)`: Peer comparison and industry benchmarks.
+
+---
+
+## 6. GoCharting Charting Library Standard for Web Applications
+
+When implementing web visualization dashboards:
+- **Mandate**: Use the **GoCharting Library / SDK (`@gocharting/chart-sdk`)** or **GoCharting embed widgets** instead of TradingView.
+- **Advantages**: Native orderflow support, Indian market (NSE) compatibility, footprint and volume profile capabilities.
+- **1-Minute Bar Feed**: Pipe 1-minute intraday bars from `data/amibroker.db` into the chart container or embed with the `NSE:<SYMBOL>` ticker reference.
