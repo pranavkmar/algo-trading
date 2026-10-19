@@ -20,6 +20,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from openalgo_client import OpenAlgoClient, OpenAlgoError
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -269,6 +270,35 @@ class FyersAdapter(BaseBrokerAdapter):
         }
 
 
+class OpenAlgoAdapter(BaseBrokerAdapter):
+    """Route NSE equity orders through OpenAlgo using the intraday MIS product."""
+
+    def __init__(self):
+        self.client = OpenAlgoClient()
+
+    def connect(self):
+        return bool(self.client.api_key)
+
+    def get_profile(self):
+        return {"broker": "OpenAlgo", "status": "CONFIGURED" if self.connect() else "API_KEY_NEEDED",
+                "product": "MIS", "orders_enabled": os.getenv("OPENALGO_ORDERS_ENABLED") == "true"}
+
+    def get_market_depth(self, symbol):
+        return self.client.call("depth", symbol=symbol.upper(), exchange="NSE")
+
+    def place_order(self, symbol, quantity, transaction_type, order_type="MARKET",
+                    price=0.0, trigger_price=0.0, tag="ALGO"):
+        if os.getenv("OPENALGO_ORDERS_ENABLED") != "true":
+            return {"status": "REJECTED", "reason": "OpenAlgo order submission is disabled on this server"}
+        try:
+            result = self.client.place_order(symbol, quantity, transaction_type, order_type,
+                                            price, trigger_price, strategy=tag)
+            # Accepted/queued is not a confirmed fill. Preserve OpenAlgo's response.
+            return {**result, "order_id": result.get("orderid"), "broker": "OpenAlgo", "product": "MIS"}
+        except (OpenAlgoError, ValueError) as exc:
+            return {"status": "REJECTED", "reason": str(exc)}
+
+
 class BrokerManager:
     """Central gateway routing commands between trading engines, GoCharting, and brokers."""
 
@@ -276,6 +306,7 @@ class BrokerManager:
         self.config = self._load_config()
         self.adapters = {
             "paper": PaperTradingBroker(),
+            "openalgo": OpenAlgoAdapter(),
             "dhan": DhanAdapter(
                 client_id=self.config.get("dhan", {}).get("client_id", ""),
                 access_token=self.config.get("dhan", {}).get("access_token", "")
@@ -285,7 +316,9 @@ class BrokerManager:
                 access_token=self.config.get("fyers", {}).get("access_token", "")
             )
         }
-        self.active_broker_name = self.config.get("active_broker", "paper")
+        self.active_broker_name = os.getenv("ALGO_BROKER", self.config.get("active_broker", "paper"))
+        if self.active_broker_name not in self.adapters:
+            raise ValueError("Unknown active broker; select paper, openalgo, dhan or fyers")
 
     def _load_config(self) -> Dict[str, Any]:
         if os.path.exists(CONFIG_PATH):

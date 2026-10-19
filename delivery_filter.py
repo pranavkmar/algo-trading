@@ -69,7 +69,7 @@ def analyze_symbol(
     if df.empty or len(df) < 5:
         return pd.DataFrame()
 
-    df = df.copy()
+    df = df.copy().sort_values('Date').drop_duplicates('Date', keep='last')
 
     # Ensure numeric columns
     for col in ['TradedQty', 'DeliverableQty', 'DeliveryPercent', 'Close']:
@@ -77,8 +77,8 @@ def analyze_symbol(
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
     # Calculate rolling volume average (SMA)
-    df['Vol_SMA'] = df['TradedQty'].rolling(window=window, min_periods=max(5, window // 4)).mean()
-    df['Vol_Spike_Ratio'] = (df['TradedQty'] / df['Vol_SMA']).round(2)
+    df['Vol_SMA'] = df['TradedQty'].shift(1).rolling(window=window, min_periods=window).mean()
+    df['Vol_Spike_Ratio'] = df['TradedQty'] / df['Vol_SMA']
 
     # Condition 1: Minimum volume threshold
     cond_vol = df['TradedQty'] >= min_volume

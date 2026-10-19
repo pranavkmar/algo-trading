@@ -236,9 +236,11 @@ class AlgoTerminalApp {
         tag: 'MANUAL_TERMINAL'
       });
 
-      if (res && res.status === 'EXECUTED') {
-        this.showToast(`Order Executed: ${side} ${qty} ${this.activeSymbol} @ ₹${res.price}`);
+      if (res && ['EXECUTED', 'SUCCESS', 'success'].includes(res.status)) {
+        this.showToast(res.broker === 'OpenAlgo' ? `OpenAlgo accepted submission: ${side} ${qty} ${this.activeSymbol}. Check fills in OpenAlgo.` : `Order Executed: ${side} ${qty} ${this.activeSymbol}`);
         await this.loadPortfolio();
+      } else if (res) {
+        this.showToast(res.reason || res.detail || 'Order was not accepted');
       }
     };
 
@@ -311,7 +313,7 @@ class AlgoTerminalApp {
       document.getElementById('statSymbolsCount').textContent = `${data.cached_symbols} F&O`;
       document.getElementById('statDbBars').textContent = `${data.db_bars_count.toLocaleString()} Bars`;
       document.getElementById('statBrokerName').textContent = data.active_broker.toUpperCase();
-      document.getElementById('statCash').textContent = `₹${data.cash_balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+      document.getElementById('statCash').textContent = data.cash_balance == null ? 'View broker' : `₹${data.cash_balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
       const statusEl = document.getElementById('marketSessionStatus');
       if (statusEl) {
@@ -742,6 +744,13 @@ class AlgoTerminalApp {
     try {
       const res = await fetch('/api/portfolio');
       const data = await res.json();
+
+      if (data.status === 'view_in_openalgo') {
+        ['pCash', 'pInvested', 'pEquity', 'pPnl'].forEach(id => { document.getElementById(id).textContent = 'View OpenAlgo'; });
+        document.getElementById('positionsTableBody').textContent = data.message;
+        document.getElementById('ordersTableBody').textContent = 'Order status and fills are available in OpenAlgo.';
+        return;
+      }
 
       document.getElementById('pCash').textContent = `₹${data.cash.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
       document.getElementById('pInvested').textContent = `₹${data.total_invested.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;

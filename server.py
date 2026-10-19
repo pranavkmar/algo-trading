@@ -45,6 +45,7 @@ import analyst_committee
 import delivery_filter
 from screener_client import fetch_screener_fundamentals
 from broker_client import BrokerManager
+from watchlists import build_watchlists
 from intraday_sync import init_database, DEFAULT_DB_PATH, calculate_candle_order_flow, save_bars_to_db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -116,8 +117,8 @@ class FastMarketEngine:
                             df[c] = pd.to_numeric(df[c], errors='coerce')
                             
                     # Precalculate 20D rolling metrics
-                    df['Vol_SMA'] = df['TradedQty'].rolling(20, min_periods=5).mean()
-                    df['Vol_Spike_Ratio'] = (df['TradedQty'] / df['Vol_SMA']).round(2)
+                    df['Vol_SMA'] = df['TradedQty'].shift(1).rolling(20, min_periods=20).mean()
+                    df['Vol_Spike_Ratio'] = df['TradedQty'] / df['Vol_SMA']
                     df['Delivery_SMA'] = df['DeliveryPercent'].rolling(20, min_periods=5).mean().round(2)
                     
                     self.symbols_data[sym] = df
@@ -694,6 +695,7 @@ class OrderRequest(BaseModel):
     transaction_type: str = "BUY"  # BUY / SELL
     order_type: str = "MARKET"     # MARKET / LIMIT / SL
     price: float = 0.0
+    trigger_price: float = 0.0
     stop_loss: Optional[float] = None
     target: Optional[float] = None
     tag: str = "WEB_TERMINAL"
@@ -756,7 +758,7 @@ def get_system_status():
 
     broker = engine.broker_mgr.get_active_broker()
     profile = broker.get_profile()
-    cash_val = getattr(broker, "state", {}).get("cash", profile.get("available_cash", 1000000.0))
+    cash_val = getattr(broker, "state", {}).get("cash", profile.get("available_cash"))
     positions_cnt = len(getattr(broker, "state", {}).get("positions", {}))
 
     market_open = is_nse_market_open()
@@ -773,6 +775,15 @@ def get_system_status():
         "open_positions_count": positions_cnt,
         "last_cache_load_sec": round(engine.last_load_time, 3)
     }
+
+
+@app.get("/api/watchlists")
+def get_watchlists(min_delivery: float = Query(60, ge=0, le=100),
+                   volume_multiplier: float = Query(1.5, gt=0, le=100),
+                   live: bool = False):
+    """Read-only scan. Quotes come exclusively from OpenAlgo, never the simulated tape."""
+    return build_watchlists(min_delivery=min_delivery, volume_multiplier=volume_multiplier,
+                            fetch_quotes=live)
 
 
 @app.get("/api/symbols")
@@ -855,6 +866,11 @@ def export_amibroker_data(symbol: str):
 @app.get("/api/portfolio")
 def get_portfolio():
     """Retrieve active broker / paper trading portfolio with real-time mark-to-market."""
+    if engine.broker_mgr.active_broker_name == "openalgo":
+        return {"active_broker": "openalgo", "status": "view_in_openalgo",
+                "message": "View positions, fills, funds and exits in the OpenAlgo dashboard",
+                "cash": None, "total_invested": None, "total_equity": None,
+                "unrealized_pnl": None, "positions": [], "orders": []}
     broker = engine.broker_mgr.get_active_broker()
     state = getattr(broker, "state", {})
     cash = state.get("cash", 1000000.0)
@@ -910,6 +926,11 @@ def get_portfolio():
 def place_order(order: OrderRequest):
     """Place equity order via active broker gateway."""
     broker = engine.broker_mgr.get_active_broker()
+    if engine.broker_mgr.active_broker_name == "openalgo":
+        if order.stop_loss is not None or order.target is not None:
+            raise HTTPException(400, "Attached stop-loss/target orders are not implemented; submit separate orders in OpenAlgo")
+        return broker.place_order(order.symbol, order.quantity, order.transaction_type,
+                                  order.order_type, order.price, order.trigger_price, order.tag)
     
     # Derive price if 0.0 (MARKET)
     price = order.price
@@ -932,6 +953,8 @@ def place_order(order: OrderRequest):
 @app.post("/api/broker/webhook")
 def receive_gocharting_webhook(alert: WebhookAlert):
     """Receive and execute GoCharting alert webhooks."""
+    if engine.broker_mgr.active_broker_name == "openalgo":
+        raise HTTPException(403, "This legacy test webhook cannot submit OpenAlgo orders; use the manual order panel")
     broker = engine.broker_mgr.get_active_broker()
     sym = alert.symbol.upper().strip()
     

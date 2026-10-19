@@ -123,6 +123,8 @@ class RealtimeEngine:
         self.db_path = db_path
         self.db_conn = init_database(db_path)
         self.broker_mgr = BrokerManager()
+        if auto_trade and self.broker_mgr.active_broker_name != "paper":
+            raise ValueError("This command generates simulated ticks; auto-trade requires the paper broker")
 
         self.tape_history: List[TradeTick] = []
         self.max_tape_display = 12

@@ -62,6 +62,7 @@
 
     <!-- TAB NAVIGATION BAR -->
     <nav class="terminal-tabs">
+      <button class="tab-btn" data-tab="watchlists"><span>Daily & Intraday Watchlists</span></button>
       <button class="tab-btn active" data-tab="live">
         <span>⚡ Live Floor & Tape</span>
       </button>
@@ -83,6 +84,22 @@
 
     <!-- MAIN VIEWPORT -->
     <main class="main-viewport">
+      <section id="tab-watchlists" class="tab-content">
+        <div class="glass-panel" style="padding:20px; overflow:auto; height:100%;">
+          <h2>Daily & Intraday Watchlists</h2>
+          <p>Delivery and volume candidates, plus dated news and results. Intraday groups scan their combined symbols using OpenAlgo quotes.</p>
+          <form id="watchlistControls" style="display:flex; gap:16px; align-items:end; flex-wrap:wrap; margin:16px 0;">
+            <label>Delivery above (%)<br><input id="wlDelivery" type="number" min="0" max="100" step="1" value="60" required></label>
+            <label>Volume at least (× prior 20 sessions)<br><input id="wlVolume" type="number" min="0.1" max="100" step="0.1" value="1.5" required></label>
+            <label><input id="wlLive" type="checkbox"> Refresh OpenAlgo prices every 30 seconds</label>
+            <button class="btn-action-sm" type="submit">Refresh watchlists</button>
+          </form>
+          <p id="wlStatus" role="status" aria-live="polite">Open this tab to load watchlists.</p>
+          <div id="wlWarnings" style="color:var(--neon-gold); margin-bottom:16px;"></div>
+          <div id="wlResults"></div>
+          <p style="margin-top:16px;">Watchlist matches do not place orders. Orders use the selected broker; OpenAlgo orders use intraday MIS. Manage fills, stops and end-of-day exits in OpenAlgo.</p>
+        </div>
+      </section>
 
       <!-- ================================================================= -->
       <!-- TAB 1: LIVE FLOOR & TAPE (Time & Sales, forming 1m candle, order) -->
@@ -575,5 +592,6 @@
   <script src="/static/js/gocharting-sdk.umd.js"></script>
   <script src="/static/js/gocharting_adapter.js"></script>
   <script src="/static/js/terminal.js"></script>
+  <script src="/static/js/watchlists.js"></script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 # NSE F&O Delivery & Volume Spike Screening Engine
 
+For the daily/intraday watchlists and OpenAlgo intraday execution integration, see [OpenAlgo workflow](OPENALGO_WORKFLOW.md). The terminal includes a **Daily & Intraday Watchlists** tab. Live execution requires explicit server configuration.
+
 A high-performance quantitative research and screening engine for all 213 active National Stock Exchange (NSE) Futures & Options (F&O) underlying equities.
 
 All historical data (OHLCV, trades, turnover, deliverable quantity, and delivery percentage) is downloaded and cached locally on your machine as standardized CSV files. This enables sub-second parameter tuning, offline screening, and volume spike detection across hundreds of stocks without incurring network latency or hitting exchange rate limits.
