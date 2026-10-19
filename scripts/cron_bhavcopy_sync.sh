@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="/home/beast/algo-trading"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${PROJECT_DIR}/logs"
 LOG_FILE="${LOG_DIR}/cron_bhavcopy.log"
 

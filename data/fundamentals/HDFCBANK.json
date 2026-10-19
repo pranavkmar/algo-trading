@@ -1,0 +1,52 @@
+{
+  "symbol": "HDFCBANK",
+  "company_name": "HDFC Bank Ltd",
+  "about": "HDFC Bank Limited (also known as HDFC) is an Indian banking and financial services company headquartered in Mumbai. It is India's largest private sector bank by assets and the world's tenth-largest bank by market capitalization as of May 2024.\nAs of April 2024, HDFC Bank has a market capitalization ...",
+  "market_cap_cr": 1107574.0,
+  "current_price": 719.0,
+  "pe": 14.0,
+  "book_value": 390.0,
+  "pb": 1.84,
+  "roce": 7.02,
+  "roe": 13.6,
+  "dividend_yield": 1.8,
+  "face_value": 1.0,
+  "pros": [
+    "Company has delivered good profit growth of 18.9% CAGR over last 5 years",
+    "Company has been maintaining a healthy dividend payout of 26.1%",
+    "Company's median sales growth is 16.3% of last 10 years"
+  ],
+  "cons": [
+    "Company has low interest coverage ratio.",
+    "Contingent liabilities of Rs.35,61,957 Cr.",
+    "Earnings include an other income of Rs.1,43,700 Cr."
+  ],
+  "shareholding": {
+    "FIIs": {
+      "latest": 41.82,
+      "previous": 44.05,
+      "change_qoq": -2.23
+    },
+    "DIIs": {
+      "latest": 41.75,
+      "previous": 40.14,
+      "change_qoq": 1.61
+    },
+    "Government": {
+      "latest": 0.18,
+      "previous": 0.18,
+      "change_qoq": 0.0
+    },
+    "Public": {
+      "latest": 16.27,
+      "previous": 15.64,
+      "change_qoq": 0.63
+    },
+    "Promoters": {
+      "latest": 0.0,
+      "previous": 0.0,
+      "change_qoq": 0.0
+    }
+  },
+  "last_updated": "2026-10-01 11:53:27"
+}

@@ -1,0 +1,51 @@
+{
+  "symbol": "HYUNDAI",
+  "company_name": "Hyundai Motor India Ltd",
+  "about": "Incorporated in May 1996, Hyundai Motor India Limited is a part of the Hyundai Motor Group, which is the third largest auto original equipment manufacturer in the world based on passenger vehicle sales.[1]",
+  "market_cap_cr": 162183.0,
+  "current_price": 1996.0,
+  "pe": 32.7,
+  "book_value": 246.0,
+  "pb": 8.11,
+  "roce": 38.4,
+  "roe": 29.9,
+  "dividend_yield": 1.05,
+  "face_value": 10.0,
+  "pros": [
+    "Company is almost debt free.",
+    "Company has a good return on equity (ROE) track record: 3 Years ROE 36.4%",
+    "Company has been maintaining a healthy dividend payout of 26.5%"
+  ],
+  "cons": [
+    "Stock is trading at 8.19 times its book value",
+    "The company has delivered a poor sales growth of 11.6% over past five years."
+  ],
+  "shareholding": {
+    "Promoters": {
+      "latest": 82.5,
+      "previous": 82.5,
+      "change_qoq": 0.0
+    },
+    "FIIs": {
+      "latest": 3.28,
+      "previous": 5.43,
+      "change_qoq": -2.15
+    },
+    "DIIs": {
+      "latest": 11.65,
+      "previous": 9.71,
+      "change_qoq": 1.94
+    },
+    "Government": {
+      "latest": 0.04,
+      "previous": 0.0,
+      "change_qoq": 0.04
+    },
+    "Public": {
+      "latest": 2.53,
+      "previous": 2.37,
+      "change_qoq": 0.16
+    }
+  },
+  "last_updated": "2026-10-05 11:08:46"
+}

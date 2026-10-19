@@ -122,6 +122,19 @@ def init_database(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
         );
     """)
 
+    # Table for GoCharting saved charts & indicator layouts
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS saved_charts (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            resolution TEXT DEFAULT '1',
+            layout_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+    """)
+
     conn.commit()
     return conn
 

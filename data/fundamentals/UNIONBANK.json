@@ -1,0 +1,48 @@
+{
+  "symbol": "UNIONBANK",
+  "company_name": "Union Bank of India",
+  "about": "Union Bank of India is engaged in the Business of Banking Services, Government Business ,Merchant Banking, Agency Business  Insurance, Mutual Funds, Wealth Management etc.[1]",
+  "market_cap_cr": 128307.0,
+  "current_price": 168.0,
+  "pe": 6.22,
+  "book_value": 183.0,
+  "pb": 0.92,
+  "roce": 6.3,
+  "roe": 15.7,
+  "dividend_yield": 2.98,
+  "face_value": 10.0,
+  "pros": [
+    "Stock is trading at 0.92 times its book value",
+    "Company has delivered good profit growth of 46.9% CAGR over last 5 years",
+    "Company has been maintaining a healthy dividend payout of 19.9%"
+  ],
+  "cons": [
+    "Company has low interest coverage ratio.",
+    "The company has delivered a poor sales growth of 9.03% over past five years.",
+    "Contingent liabilities of Rs.6,97,277 Cr.",
+    "Company might be capitalizing the interest cost"
+  ],
+  "shareholding": {
+    "Promoters": {
+      "latest": 74.76,
+      "previous": 74.76,
+      "change_qoq": 0.0
+    },
+    "FIIs": {
+      "latest": 8.63,
+      "previous": 9.37,
+      "change_qoq": -0.74
+    },
+    "DIIs": {
+      "latest": 11.97,
+      "previous": 11.51,
+      "change_qoq": 0.46
+    },
+    "Public": {
+      "latest": 4.64,
+      "previous": 4.36,
+      "change_qoq": 0.28
+    }
+  },
+  "last_updated": "2026-10-01 12:03:09"
+}

@@ -139,10 +139,23 @@ Registered in `.agents/mcp_config.json` and `~/.gemini/config/mcp_config.json`:
 
 ## 6. GoCharting Charting Library Standard for Web Applications
 
-When implementing web visualization dashboards:
+When implementing web visualization dashboards or evaluating chart integration:
 - **Mandate**: Use the **GoCharting Library / SDK (`@gocharting/chart-sdk`)** or **GoCharting embed widgets** instead of TradingView.
-- **Advantages**: Native orderflow support, Indian market (NSE) compatibility, footprint and volume profile capabilities.
-- **1-Minute Bar Feed**: Pipe 1-minute intraday bars from `data/amibroker.db` into the chart container or embed with the `NSE:<SYMBOL>` ticker reference.
+- **Dedicated Agent Skill**: Autonomous agents should leverage `.agents/skills/gocharting-sdk/` (grounded in the official 1MB knowledge base `references/gocharting-sdk-context.txt`) for authoritative API signatures, TS types, and migration rules.
+- **Universal Data Feed (UDF) Server**: `server.py` implements standard GoCharting endpoints:
+  - `GET /api/gocharting/config`: Server handshake and resolution declaration (`["1", "3", "5", "15", "30", "60", "D"]`).
+  - `GET /api/gocharting/time`: Server epoch synchronization.
+  - `GET /api/gocharting/symbols`: Symbol resolution with Indian market sessions (`0915-1530`), `Asia/Kolkata` timezone, and footprint feature flags (`supports: { footprint: true }`).
+  - `GET /api/gocharting/history`: Historical 1-minute orderflow bars (with `buy_volume`, `sell_volume`, `delta`) from `data/amibroker.db` and daily candles from CSVs.
+  - `GET /api/gocharting/search`: Autocomplete search across all 213 active F&O equities.
+  - `GET / POST / DELETE /api/gocharting/charts`: SQLite layout and drawing persistence in `amibroker.db`.
+- **Client Adapter (`static/js/gocharting_adapter.js`)**:
+  - `GoChartingDatafeed`: Implements the `Datafeed` interface, bridging `/api/gocharting/*` and real-time candle streaming from `/ws/live`.
+  - `GoChartingController`: Implements `appCallback` to route Trade-from-Chart events (`PLACE_ORDER`, `CANCEL_ORDER`, `CLOSE_POSITION`) directly to `broker_client.py` and sync account state via `setBrokerAccounts()`.
+- **3-Way Terminal Viewing**:
+  - View 1: ⚡ 60FPS Order Flow Canvas (Candles + Buy/Sell Volume + CVD).
+  - View 2: 📊 GoCharting Local SDK & Custom 1M Datafeed (Footprint + Trade-from-Chart).
+  - View 3: 🌐 GoCharting Cloud Terminal (Live Terminal Embed).
 
 ---
 

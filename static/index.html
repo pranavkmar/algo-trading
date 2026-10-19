@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Institutional Algo-Trading & Order Flow Terminal</title>
+  <!-- Modern Typography: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/terminal.css">
+</head>
+<body>
+  <div class="terminal-app">
+
+    <!-- TOP NAVBAR -->
+    <header class="top-navbar">
+      <div class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div class="brand-title">
+          <span>ALGO<span style="color: var(--neon-cyan);">PRO</span></span>
+          <span class="brand-tag">INSTITUTIONAL QUANT</span>
+        </div>
+      </div>
+
+      <!-- Live Indicators & Market Status -->
+      <div class="market-status-cluster">
+        <div class="pulse-indicator">
+          <span class="pulse-dot" id="wsStatusDot"></span>
+          <span id="marketSessionStatus" class="mono" style="font-weight: 700; color: var(--neon-gold); font-size: 10px; background: rgba(255, 214, 0, 0.12); padding: 2px 6px; border-radius: 4px;">MARKET CLOSED</span>
+          <span id="marketClock" class="mono">--:--:-- IST</span>
+        </div>
+
+        <div class="metric-pill">
+          <span class="label">Cache</span>
+          <span class="val mono" id="statSymbolsCount">213 F&O</span>
+        </div>
+
+        <div class="metric-pill">
+          <span class="label">1m DB</span>
+          <span class="val mono" id="statDbBars">25,260 Bars</span>
+        </div>
+
+        <div class="metric-pill">
+          <span class="label">Broker</span>
+          <span class="val mono" style="color: var(--neon-cyan);" id="statBrokerName">PAPER TRADING</span>
+        </div>
+
+        <div class="metric-pill">
+          <span class="label">Cash</span>
+          <span class="val mono" style="color: var(--neon-green);" id="statCash">₹9,50,707.00</span>
+        </div>
+
+        <!-- Quick Symbol Search -->
+        <div class="search-box-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="symbolSearch" class="search-input" placeholder="Search 213 F&O (e.g. KOTAKBANK)..." autocomplete="off">
+          <div id="searchDropdown" class="search-dropdown"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- TAB NAVIGATION BAR -->
+    <nav class="terminal-tabs">
+      <button class="tab-btn active" data-tab="live">
+        <span>⚡ Live Floor & Tape</span>
+      </button>
+      <button class="tab-btn" data-tab="screener">
+        <span>📊 Institutional Screener</span>
+        <span class="tab-badge" id="screenerCountBadge">Scanning...</span>
+      </button>
+      <button class="tab-btn" data-tab="committee">
+        <span>🏛 Committee Floor (CIO)</span>
+        <span class="tab-badge" id="activeSymbolBadge">KOTAKBANK</span>
+      </button>
+      <button class="tab-btn" data-tab="orderflow">
+        <span>📈 GoCharting & Order Flow</span>
+      </button>
+      <button class="tab-btn" data-tab="portfolio">
+        <span>💼 Broker & Execution</span>
+      </button>
+    </nav>
+
+    <!-- MAIN VIEWPORT -->
+    <main class="main-viewport">
+
+      <!-- ================================================================= -->
+      <!-- TAB 1: LIVE FLOOR & TAPE (Time & Sales, forming 1m candle, order) -->
+      <!-- ================================================================= -->
+      <section id="tab-live" class="tab-content active">
+        <div class="grid-terminal-layout">
+
+          <!-- Left: Real-Time Time & Sales (The Tape) -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span>⏱ Time & Sales (The Tape)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span id="feedModeBadge" class="panel-title-badge mono" style="font-size: 9px; background: rgba(0, 230, 118, 0.15); color: var(--neon-green); border: 1px solid rgba(0, 230, 118, 0.3);">INITIALIZING TAPE...</span>
+                <button id="btnToggleSim" class="btn-action-sm" style="font-size: 10px; padding: 2px 7px;" title="Toggle simulated test ticks during market off-hours">▶ Test Sim</button>
+              </div>
+            </div>
+            <div class="tape-container">
+              <div class="tape-header">
+                <span>Time</span>
+                <span>Price</span>
+                <span>Size</span>
+                <span>Ticker</span>
+              </div>
+              <div id="tapeStream" class="tape-stream">
+                <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 11px;">Connecting to Live Institutional Tape...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Active Forming 1-Minute Candle & VWAP -->
+          <div class="glass-panel highlight">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span id="candleSectionHeader">⚡ Active 1-Minute Candle</span>
+              </div>
+              <span class="panel-title-badge mono" id="candleSymbolTitle">PRIMARY: KOTAKBANK</span>
+            </div>
+
+            <div class="forming-candle-grid">
+              <div class="candle-stat-box">
+                <div class="title">Open Price</div>
+                <div class="number mono" id="liveOpen">₹417.00</div>
+              </div>
+              <div class="candle-stat-box">
+                <div class="title">High of Minute</div>
+                <div class="number mono" style="color: var(--neon-green);" id="liveHigh">₹417.00</div>
+              </div>
+              <div class="candle-stat-box">
+                <div class="title">Low of Minute</div>
+                <div class="number mono" style="color: var(--neon-red);" id="liveLow">₹417.00</div>
+              </div>
+              <div class="candle-stat-box">
+                <div class="title">Last Traded Price</div>
+                <div class="number mono" style="color: var(--neon-cyan);" id="liveClose">₹417.00</div>
+              </div>
+              <div class="candle-stat-box">
+                <div class="title">1m Candle Volume</div>
+                <div class="number mono" id="liveVol">0</div>
+              </div>
+              <div class="candle-stat-box">
+                <div class="title">Order Flow Delta (Net)</div>
+                <div class="number mono delta-positive" id="liveDelta">+0</div>
+              </div>
+            </div>
+
+            <!-- Mini Quick Chart Info Banner -->
+            <div style="margin-top: 24px; padding: 16px; background: rgba(0, 242, 254, 0.04); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: var(--radius-sm);">
+              <div style="font-weight: 700; color: var(--neon-cyan); margin-bottom: 6px;">💡 Institutional Footprint Aggression</div>
+              <p style="color: var(--text-secondary); font-size: 12px; line-height: 1.6;">
+                Real-time aggressive market buy orders (Ask lifts) and aggressive market sell orders (Bid hits) are parsed dynamically. Net Delta reflects true institutional absorption before retail breakout confirmation.
+              </p>
+            </div>
+          </div>
+
+          <!-- Right: Instant Broker Execution Dock -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span>🚀 Instant Execution Dock</span>
+              </div>
+              <span class="panel-title-badge mono">PAPER / DHAN / FYERS</span>
+            </div>
+
+            <div class="order-panel">
+              <div class="form-group">
+                <label class="form-label">Symbol</label>
+                <input type="text" id="orderSymbol" class="form-input" value="KOTAKBANK" readonly>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Order Type</label>
+                <select id="orderType" class="form-select">
+                  <option value="MARKET">MARKET (Instant Aggressor)</option>
+                  <option value="LIMIT">LIMIT (Resting Wall)</option>
+                  <option value="SL">STOP LOSS (Conditional)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Quantity (Shares)</label>
+                <input type="number" id="orderQty" class="form-input" value="50" min="1" step="1">
+              </div>
+
+              <div class="order-btn-group">
+                <button id="btnPlaceBuy" class="btn-buy">BUY / LONG</button>
+                <button id="btnPlaceSell" class="btn-sell">SELL / SHORT</button>
+              </div>
+
+              <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+                Protected by 1% fractional risk model. Integrated with GoCharting webhooks & Paper Trading engine.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 2: INSTITUTIONAL SCREENER (Delivery % & Volume Spikes)        -->
+      <!-- ================================================================= -->
+      <section id="tab-screener" class="tab-content">
+        <!-- Controls Bar -->
+        <div class="screener-controls-bar">
+          <div class="control-item">
+            <label class="form-label">Delivery % Threshold:</label>
+            <input type="range" id="delivSlider" class="range-slider" min="50" max="95" step="1" value="70">
+            <span id="delivVal" class="mono" style="font-weight: 700; color: var(--neon-green);">70%</span>
+          </div>
+
+          <div class="control-item">
+            <label class="form-label">Volume Spike vs 20D SMA:</label>
+            <input type="range" id="spikeSlider" class="range-slider" min="1.0" max="8.0" step="0.5" value="2.0">
+            <span id="spikeVal" class="mono" style="font-weight: 700; color: var(--neon-cyan);">2.0x</span>
+          </div>
+
+          <div class="control-item">
+            <label class="form-label">Filter Mode:</label>
+            <select id="screenerMode" class="form-select">
+              <option value="both">BOTH (Delivery &ge; 70% & Vol &ge; 2x)</option>
+              <option value="delivery">Delivery % Only (&ge; 70%)</option>
+              <option value="spike">Volume Spike Only (&ge; 2x)</option>
+              <option value="either">Either (Delivery OR Spike)</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button id="btnRunScan" class="btn-action-sm" style="padding: 8px 16px; font-size: 12px; background: var(--neon-cyan); color: #07090e; font-weight: 700;">
+              ⚡ Scan 213 F&O
+            </button>
+            <button id="btnExportScreener" class="btn-action-sm" style="padding: 8px 14px; font-size: 12px;">
+              💾 Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- High-Speed Screener Results Table -->
+        <div class="data-table-container">
+          <table class="quant-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Signal Date</th>
+                <th>Close (₹)</th>
+                <th>1D Chg %</th>
+                <th>Traded Qty</th>
+                <th>20D Avg Vol</th>
+                <th>Volume Spike</th>
+                <th>Deliverable Qty</th>
+                <th>Delivery %</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="screenerTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 3: 5-PERSONA COMMITTEE FLOOR (CIO Consensus Debate)           -->
+      <!-- ================================================================= -->
+      <section id="tab-committee" class="tab-content">
+        <!-- Hero Verdict Banner -->
+        <div class="committee-header-hero">
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--neon-cyan); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">
+              CIO MULTI-PERSONA COMMITTEE REPORT
+            </div>
+            <h1 id="cioSymbolName" style="font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 4px;">
+              KOTAKBANK (Kotak Mahindra Bank Ltd.)
+            </h1>
+            <div id="cioDatePrice" class="mono" style="color: var(--text-secondary); font-size: 12px;">
+              Date: 30-Sep-2026 | Close: ₹417.00 (+2.71%) | VWAP: ₹414.88
+            </div>
+          </div>
+
+          <div class="cio-verdict-cluster">
+            <div style="text-align: right;">
+              <span id="cioVerdictBadge" class="verdict-tag verdict-strong-buy">STRONG BUY / HIGH CONVICTION</span>
+              <div id="cioActionText" style="color: var(--text-secondary); font-size: 12px; max-width: 320px;">
+                Initiate long position with defined invalidation stop
+              </div>
+            </div>
+            <div class="cio-score-circle">
+              <span id="cioScoreNum" class="cio-score-num">+4.7</span>
+              <span class="cio-score-label">CIO SCORE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screener.in Fundamentals Strip -->
+        <div class="fundamentals-strip">
+          <div class="fund-box">
+            <span class="k">Market Cap</span>
+            <span class="v" id="fundMcap">₹4,14,500 Cr</span>
+          </div>
+          <div class="fund-box">
+            <span class="k">P/E Ratio</span>
+            <span class="v" id="fundPE">17.8x</span>
+          </div>
+          <div class="fund-box">
+            <span class="k">Price / Book</span>
+            <span class="v" id="fundPB">2.4x</span>
+          </div>
+          <div class="fund-box">
+            <span class="k">ROCE %</span>
+            <span class="v" id="fundROCE">14.8%</span>
+          </div>
+          <div class="fund-box">
+            <span class="k">ROE %</span>
+            <span class="v" id="fundROE">13.9%</span>
+          </div>
+          <div class="fund-box">
+            <span class="k">5Y Profit CAGR</span>
+            <span class="v" id="fundProfitCAGR">18.2%</span>
+          </div>
+        </div>
+
+        <!-- 4 Specialized Persona Cards -->
+        <div class="personas-grid" style="margin-top: 16px;">
+          <!-- Persona 1: Momentum & Breakout Trader -->
+          <div class="persona-card">
+            <div>
+              <div class="persona-card-header">
+                <div class="persona-name">
+                  <span>⚡ 1. Momentum & Breakout Trader</span>
+                </div>
+                <span id="pMomVote" class="persona-vote-chip vote-pos">+8/10</span>
+              </div>
+              <ul id="pMomSignals" class="signals-list"></ul>
+            </div>
+          </div>
+
+          <!-- Persona 2: Institutional Delivery Tracker -->
+          <div class="persona-card">
+            <div>
+              <div class="persona-card-header">
+                <div class="persona-name">
+                  <span>📊 2. Institutional Delivery Tracker</span>
+                </div>
+                <span id="pDelVote" class="persona-vote-chip vote-pos">+9/10</span>
+              </div>
+              <ul id="pDelSignals" class="signals-list"></ul>
+            </div>
+          </div>
+
+          <!-- Persona 3: Fundamental Value Investor -->
+          <div class="persona-card">
+            <div>
+              <div class="persona-card-header">
+                <div class="persona-name">
+                  <span>🏛 3. Fundamental Value Investor (Screener.in)</span>
+                </div>
+                <span id="pValVote" class="persona-vote-chip vote-pos">+7/10</span>
+              </div>
+              <ul id="pValSignals" class="signals-list"></ul>
+            </div>
+          </div>
+
+          <!-- Persona 4: Quantitative Risk Analyst -->
+          <div class="persona-card">
+            <div>
+              <div class="persona-card-header">
+                <div class="persona-name">
+                  <span>🛡 4. Quantitative Risk & Research Analyst</span>
+                </div>
+                <span id="pRiskVote" class="persona-vote-chip vote-pos">+6/10</span>
+              </div>
+              <ul id="pRiskSignals" class="signals-list"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 4: GOCHARTING & 1-MINUTE ORDER FLOW                           -->
+      <!-- ================================================================= -->
+      <section id="tab-orderflow" class="tab-content">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div class="chart-view-toggle">
+            <button class="view-toggle-btn active" data-view="canvas">
+              ⚡ 60FPS Order Flow Canvas (Candles + Buy/Sell Volume + CVD)
+            </button>
+            <button class="view-toggle-btn" data-view="gocharting-sdk">
+              📊 GoCharting Local SDK & 1M Datafeed (Footprint + Trade-from-Chart)
+            </button>
+            <button class="view-toggle-btn" data-view="gocharting-cloud">
+              🌐 GoCharting Cloud Terminal (Live Terminal Embed)
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button id="btnDownloadAmiBroker" class="btn-action-sm">
+              📥 Download AmiBroker ASCII (.csv)
+            </button>
+          </div>
+        </div>
+
+        <!-- View 1: Native High-Performance HTML5 Canvas Chart -->
+        <div class="canvas-chart-container">
+          <canvas id="orderflowCanvas"></canvas>
+          <!-- View 2: GoCharting Local SDK & Custom 1M Datafeed Container -->
+          <div id="gochartingSdkContainer" class="gocharting-sdk-container" style="display: none;"></div>
+          <!-- View 3: GoCharting Cloud Gateway & Direct Launch Portal -->
+          <div id="gochartingCloudBox" class="gocharting-cloud-box" style="display: none;">
+            <div class="gc-cloud-card">
+              <div class="gc-cloud-header">
+                <div class="gc-cloud-icon">🛡️</div>
+                <div class="gc-cloud-title-group">
+                  <div class="gc-cloud-badge mono">X-FRAME-OPTIONS: DENY ENFORCED BY GOCHARTING</div>
+                  <h3>GoCharting Cloud Terminal: External Window Mode</h3>
+                  <p>
+                    GoCharting Cloud (<code>gocharting.com/terminal</code>) strictly sends the HTTP response header
+                    <code>X-Frame-Options: DENY</code> with Cloudflare clickjacking protection. Web browsers strictly block
+                    financial trading platforms with broker credentials from rendering inside third-party <code>&lt;iframe&gt;</code> elements.
+                  </p>
+                </div>
+              </div>
+
+              <div class="gc-cloud-actions">
+                <a id="btnLaunchGoChartingCloud" href="https://gocharting.com/terminal?symbol=NSE:KOTAKBANK&theme=dark" target="_blank" rel="noopener noreferrer" class="gc-launch-btn">
+                  🚀 Launch Full GoCharting Cloud Terminal for NSE:KOTAKBANK in New Tab ↗
+                </a>
+                <span class="gc-cloud-subtext">Opens a dedicated top-level window directly bypassing iframe restrictions with full footprint, indicators & broker integrations.</span>
+              </div>
+
+              <div class="gc-cloud-in-terminal-options">
+                <div class="gc-opt-label">Or use the built-in in-terminal order flow views:</div>
+                <div class="gc-opt-buttons">
+                  <button type="button" id="btnSwitchToCanvas" class="gc-opt-btn">
+                    ⚡ View 1: 60FPS Order Flow Canvas (Candles + Buy/Sell Volume + CVD)
+                  </button>
+                  <button type="button" id="btnSwitchToSdk" class="gc-opt-btn">
+                    📊 View 2: GoCharting Local SDK & 1M Datafeed (Footprint + Trade-from-Chart)
+                  </button>
+                </div>
+              </div>
+
+              <div class="gc-cloud-diagnostics">
+                <div class="gc-diag-row">
+                  <span class="k">Cloud Target URL:</span>
+                  <span class="v mono" id="gcDiagTargetUrl">https://gocharting.com/terminal?symbol=NSE:KOTAKBANK&theme=dark</span>
+                </div>
+                <div class="gc-diag-row">
+                  <span class="k">Browser Response Header:</span>
+                  <span class="v mono" style="color: var(--neon-red);">HTTP/2 200 | x-frame-options: DENY (Cloudflare Clickjacking Defense)</span>
+                </div>
+                <div class="gc-diag-row">
+                  <span class="k">Local Universal Data Feed (UDF):</span>
+                  <span class="v mono" id="gcDiagUdfStatus" style="color: var(--neon-green);">Active (/api/gocharting/history?symbol=KOTAKBANK&resolution=1)</span>
+                </div>
+                <div class="gc-diag-row">
+                  <span class="k">GoCharting Webhook Router:</span>
+                  <span class="v mono" style="color: var(--neon-cyan);">Active (/api/broker/webhook/gocharting) - Direct Broker Order Execution</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 5: PORTFOLIO & BROKER EXECUTION                               -->
+      <!-- ================================================================= -->
+      <section id="tab-portfolio" class="tab-content">
+        <div class="portfolio-stat-banner">
+          <div class="p-stat-card">
+            <div class="t">Cash Balance</div>
+            <div class="v" id="pCash">₹9,50,707.00</div>
+          </div>
+          <div class="p-stat-card">
+            <div class="t">Invested Value</div>
+            <div class="v" id="pInvested">₹49,293.00</div>
+          </div>
+          <div class="p-stat-card">
+            <div class="t">Total Equity</div>
+            <div class="v" id="pEquity">₹10,00,000.00</div>
+          </div>
+          <div class="p-stat-card">
+            <div class="t">Unrealized P&L</div>
+            <div class="v mono delta-positive" id="pPnl">+₹0.00</div>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <!-- Positions Table -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span>Active Open Positions</span>
+              </div>
+            </div>
+            <div class="data-table-container">
+              <table class="quant-table">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Qty</th>
+                    <th>Avg Price</th>
+                    <th>LTP</th>
+                    <th>Mkt Value</th>
+                    <th>Unrealized PnL</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="positionsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- GoCharting Webhook Tester & Simulator -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span>GoCharting Webhook Router & Simulator</span>
+              </div>
+              <span class="panel-title-badge mono">AUTOTRADER</span>
+            </div>
+
+            <div class="webhook-simulator-box">
+              <p style="color: var(--text-secondary); font-size: 12px;">
+                Directly receive and route webhook alerts generated by GoCharting indicators (e.g. Footprint Absorption, CVD Divergence) into real or paper broker execution.
+              </p>
+
+              <div class="form-group">
+                <label class="form-label">Signal Action</label>
+                <select id="whAction" class="form-select">
+                  <option value="BUY">BUY (Bullish Breakout / Footprint Absorption)</option>
+                  <option value="SELL">SELL (Bearish Exhaustion / Invalidation)</option>
+                </select>
+              </div>
+
+              <button id="btnTestWebhook" class="btn-action-sm" style="padding: 10px; background: var(--neon-cyan); color: #07090e; font-weight: 700; width: 100%;">
+                Dispatch Test GoCharting Alert Webhook
+              </button>
+            </div>
+
+            <!-- Executed Order History -->
+            <div style="margin-top: 20px;">
+              <div class="panel-title" style="margin-bottom: 10px;">Recent Executed Orders</div>
+              <div class="data-table-container" style="max-height: 200px;">
+                <table class="quant-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Symbol</th>
+                      <th>Type</th>
+                      <th>Qty</th>
+                      <th>Price</th>
+                      <th>Tag</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/gocharting-sdk.umd.js"></script>
+  <script src="/static/js/gocharting_adapter.js"></script>
+  <script src="/static/js/terminal.js"></script>
+</body>
+</html>

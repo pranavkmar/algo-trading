@@ -1,0 +1,45 @@
+{
+  "symbol": "BAJAJFINSV",
+  "company_name": "Bajaj Finserv Ltd",
+  "about": "Bajaj Finserv Ltd. is the holding company for the various financial services businesses under the Bajaj group. It serves millions of customers by providing solutions for asset acquisition through financing, asset protection through general insurance, family and income protection in the form of life ...",
+  "market_cap_cr": 278743.0,
+  "current_price": 1740.0,
+  "pe": 27.2,
+  "book_value": 487.0,
+  "pb": 3.57,
+  "roce": 10.6,
+  "roe": 13.2,
+  "dividend_yield": 0.09,
+  "face_value": 1.0,
+  "pros": [
+    "Company's median sales growth is 20.2% of last 10 years"
+  ],
+  "cons": [
+    "Stock is trading at 3.61 times its book value",
+    "Company has low interest coverage ratio.",
+    "Company has a low return on equity of 13.8% over last 3 years."
+  ],
+  "shareholding": {
+    "Promoters": {
+      "latest": 58.72,
+      "previous": 58.72,
+      "change_qoq": 0.0
+    },
+    "FIIs": {
+      "latest": 6.9,
+      "previous": 7.23,
+      "change_qoq": -0.33
+    },
+    "DIIs": {
+      "latest": 12.11,
+      "previous": 11.76,
+      "change_qoq": 0.35
+    },
+    "Public": {
+      "latest": 22.23,
+      "previous": 22.16,
+      "change_qoq": 0.07
+    }
+  },
+  "last_updated": "2026-10-05 09:10:46"
+}

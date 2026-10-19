@@ -108,12 +108,26 @@ class PaperTradingBroker(BaseBrokerAdapter):
             "portfolio_value": round(total_portfolio_val, 2)
         }
 
-    def get_market_depth(self, symbol: str) -> Dict[str, Any]:
-        """Simulate realistic order book depth around last price."""
+    def get_market_depth(self, symbol: str, last_price: float = 0.0) -> Dict[str, Any]:
+        """Simulate realistic order book depth around actual market price."""
+        base_p = last_price
+        if base_p <= 0:
+            csv_path = os.path.join(DATA_DIR, "historical", f"{symbol.upper()}.csv")
+            if os.path.exists(csv_path):
+                try:
+                    import pandas as pd
+                    df = pd.read_csv(csv_path)
+                    if not df.empty and "Close" in df.columns:
+                        base_p = float(df.iloc[-1]["Close"])
+                except Exception:
+                    pass
+        if base_p <= 0:
+            base_p = 100.0
+
         return {
-            "symbol": symbol,
-            "bids": [{"price": 100.0 - i * 0.05, "quantity": 1500 * (5 - i)} for i in range(5)],
-            "asks": [{"price": 100.05 + i * 0.05, "quantity": 1200 * (5 - i)} for i in range(5)],
+            "symbol": symbol.upper(),
+            "bids": [{"price": round(base_p - 0.05 - i * 0.05, 2), "quantity": 1500 * (5 - i)} for i in range(5)],
+            "asks": [{"price": round(base_p + 0.05 + i * 0.05, 2), "quantity": 1200 * (5 - i)} for i in range(5)],
             "total_buy_qty": 35000,
             "total_sell_qty": 28000,
             "depth_ratio": 1.25  # Buyers outweigh sellers

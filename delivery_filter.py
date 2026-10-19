@@ -138,12 +138,6 @@ def scan_datasets(
     results_list = []
     for sym in target_symbols:
         df = all_data[sym]
-        
-        # Optional date filtering
-        if from_date:
-            df = df[df['Date'] >= pd.to_datetime(from_date)]
-        if to_date:
-            df = df[df['Date'] <= pd.to_datetime(to_date)]
 
         matched = analyze_symbol(
             df,
@@ -154,7 +148,13 @@ def scan_datasets(
             mode=mode
         )
         if not matched.empty:
-            results_list.append(matched)
+            # Optional date filtering after rolling indicators are computed
+            if from_date:
+                matched = matched[matched['Date'] >= pd.to_datetime(from_date)]
+            if to_date:
+                matched = matched[matched['Date'] <= pd.to_datetime(to_date)]
+            if not matched.empty:
+                results_list.append(matched)
 
     if not results_list:
         return pd.DataFrame()
